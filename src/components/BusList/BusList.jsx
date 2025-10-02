@@ -2,7 +2,7 @@ import React from 'react';
 import BusCard from './BusCard';
 import { Bus } from 'lucide-react';
 
-const BusList = ({ locations, onFocusBus }) => {
+const BusList = ({ locations, selectedBus, onSelectBus, onFocusBus }) => {
   return (
     <div style={{
       background: 'white',
@@ -21,7 +21,8 @@ const BusList = ({ locations, onFocusBus }) => {
         top: 0,
         background: 'white',
         paddingBottom: '10px',
-        borderBottom: '2px solid #e5e7eb'
+        borderBottom: '2px solid #e5e7eb',
+        zIndex: 10
       }}>
         <Bus size={24} style={{ color: '#667eea' }} />
         <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold', color: '#1f2937' }}>
@@ -47,6 +48,8 @@ const BusList = ({ locations, onFocusBus }) => {
             <BusCard
               key={location.bus._id}
               location={location}
+              isSelected={selectedBus?.bus._id === location.bus._id}
+              onSelect={onSelectBus}
               onFocus={onFocusBus}
             />
           ))}

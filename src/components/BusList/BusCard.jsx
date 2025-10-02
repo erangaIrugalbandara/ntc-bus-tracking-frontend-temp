@@ -1,102 +1,190 @@
 import React from 'react';
-import { Bus, Gauge, Navigation2 } from 'lucide-react';
+import { Bus, Gauge, Navigation2, MapPin } from 'lucide-react';
 
-const BusCard = ({ location, onFocus }) => {
+const BusCard = ({ location, isSelected, onSelect, onFocus }) => {
   const { bus, location: loc, trip } = location;
   
-  // Color based on operator: Red for SLTB, Green for Private
-  const color = bus.operator === 'SLTB' ? '#ef4444' : '#10b981';
+  const getOperatorColor = (operator) => {
+    return operator === 'SLTB' ? '#3b82f6' : '#10b981';
+  };
+
+  const getServiceTypeColor = (serviceType) => {
+    const colors = {
+      'AC': '#8b5cf6',
+      'Semi-Luxury': '#f59e0b',
+      'Luxury': '#ec4899',
+      'Normal': '#6b7280'
+    };
+    return colors[serviceType] || '#6b7280';
+  };
 
   return (
     <div
-      onClick={() => onFocus(location)}
       style={{
         padding: '16px',
-        background: 'white',
-        border: '1px solid #e5e7eb',
-        borderRadius: '10px',
+        background: isSelected ? '#e0e7ff' : 'white',
+        border: isSelected ? '2px solid #667eea' : '1px solid #e5e7eb',
+        borderRadius: '12px',
         cursor: 'pointer',
         transition: 'all 0.2s ease',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px'
+        boxShadow: isSelected ? '0 4px 12px rgba(102, 126, 234, 0.2)' : 'none'
       }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-        e.currentTarget.style.transform = 'translateY(-2px)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = 'none';
-        e.currentTarget.style.transform = 'translateY(0)';
-      }}
+      onClick={() => onSelect(location)}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div style={{
-          background: color,
-          color: 'white',
-          padding: '10px',
-          borderRadius: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <Bus size={24} />
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'start',
+        marginBottom: '12px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            background: getOperatorColor(bus.operator),
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <Bus size={22} style={{ color: 'white' }} />
+          </div>
+          <div>
+            <h3 style={{ 
+              margin: '0 0 4px 0', 
+              fontSize: '16px', 
+              fontWeight: 'bold',
+              color: '#1f2937'
+            }}>
+              {bus.busNumber}
+            </h3>
+            <p style={{ 
+              margin: 0, 
+              fontSize: '12px', 
+              color: '#6b7280'
+            }}>
+              {bus.operator}
+            </p>
+          </div>
         </div>
-        <div style={{ flex: 1 }}>
-          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#1f2937' }}>
-            {bus.busNumber}
-          </h3>
-          <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#6b7280' }}>
-            {bus.serviceType} • {bus.operator}
-          </p>
-        </div>
-        <div style={{
-          background: color,
+        <span style={{
+          padding: '4px 10px',
+          background: getServiceTypeColor(bus.serviceType),
           color: 'white',
-          padding: '4px 12px',
-          borderRadius: '12px',
+          borderRadius: '6px',
           fontSize: '11px',
-          fontWeight: 'bold'
+          fontWeight: '600'
         }}>
-          {bus.operator}
-        </div>
+          {bus.serviceType}
+        </span>
       </div>
 
       {trip && trip.route && (
         <div style={{
-          padding: '8px 12px',
-          background: '#f3f4f6',
-          borderRadius: '6px',
-          fontSize: '13px',
-          color: '#4b5563'
+          padding: '10px',
+          background: '#f9fafb',
+          borderRadius: '8px',
+          marginBottom: '12px'
         }}>
-          <strong>Route:</strong> {trip.route.name}
+          <p style={{ 
+            margin: '0 0 4px 0', 
+            fontSize: '13px', 
+            fontWeight: '600',
+            color: '#374151'
+          }}>
+            {trip.route.name}
+          </p>
+          <p style={{ 
+            margin: 0, 
+            fontSize: '11px', 
+            color: '#6b7280'
+          }}>
+            {trip.route.origin} → {trip.route.destination}
+          </p>
         </div>
       )}
 
       <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: '1fr 1fr', 
-        gap: '8px',
-        fontSize: '13px'
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '12px',
+        marginBottom: '12px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#6b7280' }}>
-          <Gauge size={16} />
-          <span>{loc.speed} km/h</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Gauge size={16} style={{ color: '#667eea' }} />
+          <div>
+            <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>Speed</p>
+            <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
+              {loc.speed} km/h
+            </p>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#6b7280' }}>
-          <Navigation2 size={16} />
-          <span>{loc.heading}°</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Navigation2 size={16} style={{ color: '#667eea' }} />
+          <div>
+            <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>Heading</p>
+            <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
+              {loc.heading}°
+            </p>
+          </div>
         </div>
       </div>
 
-      <div style={{ 
+      <div style={{
+        display: 'flex',
+        gap: '8px'
+      }}>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(location);
+          }}
+          style={{
+            flex: 1,
+            padding: '8px',
+            background: isSelected ? '#667eea' : '#e0e7ff',
+            color: isSelected ? 'white' : '#667eea',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: '600'
+          }}
+        >
+          {isSelected ? 'Tracking' : 'Track Bus'}
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onFocus(location);
+          }}
+          style={{
+            padding: '8px 12px',
+            background: 'white',
+            color: '#667eea',
+            border: '1px solid #667eea',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}
+        >
+          <MapPin size={14} />
+          Focus
+        </button>
+      </div>
+
+      <p style={{ 
+        margin: '12px 0 0 0', 
         fontSize: '11px', 
         color: '#9ca3af',
-        textAlign: 'right'
+        textAlign: 'center'
       }}>
         Updated: {new Date(loc.timestamp).toLocaleTimeString()}
-      </div>
+      </p>
     </div>
   );
 };
