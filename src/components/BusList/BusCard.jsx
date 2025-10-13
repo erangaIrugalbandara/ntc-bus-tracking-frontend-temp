@@ -2,6 +2,11 @@ import React from 'react';
 import { Bus, Gauge, Navigation2, MapPin } from 'lucide-react';
 
 const BusCard = ({ location, isSelected, onSelect, onFocus }) => {
+  // Validate the location object
+  if (!location || !location.bus || !location.location) {
+    return null;
+  }
+
   const { bus, location: loc, trip } = location;
   
   const getOperatorColor = (operator) => {
@@ -56,14 +61,14 @@ const BusCard = ({ location, isSelected, onSelect, onFocus }) => {
               fontWeight: 'bold',
               color: '#1f2937'
             }}>
-              {bus.busNumber}
+              {bus.busNumber || 'N/A'}
             </h3>
             <p style={{ 
               margin: 0, 
               fontSize: '12px', 
               color: '#6b7280'
             }}>
-              {bus.operator}
+              {bus.operator || 'Unknown'}
             </p>
           </div>
         </div>
@@ -75,7 +80,7 @@ const BusCard = ({ location, isSelected, onSelect, onFocus }) => {
           fontSize: '11px',
           fontWeight: '600'
         }}>
-          {bus.serviceType}
+          {bus.serviceType || 'Normal'}
         </span>
       </div>
 
@@ -115,7 +120,7 @@ const BusCard = ({ location, isSelected, onSelect, onFocus }) => {
           <div>
             <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>Speed</p>
             <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
-              {loc.speed} km/h
+              {loc.speed ?? 0} km/h
             </p>
           </div>
         </div>
@@ -124,7 +129,7 @@ const BusCard = ({ location, isSelected, onSelect, onFocus }) => {
           <div>
             <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>Heading</p>
             <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
-              {loc.heading}°
+              {loc.heading ?? 0}°
             </p>
           </div>
         </div>
@@ -183,7 +188,7 @@ const BusCard = ({ location, isSelected, onSelect, onFocus }) => {
         color: '#9ca3af',
         textAlign: 'center'
       }}>
-        Updated: {new Date(loc.timestamp).toLocaleTimeString()}
+        Updated: {loc.timestamp ? new Date(loc.timestamp).toLocaleTimeString() : 'N/A'}
       </p>
     </div>
   );

@@ -61,11 +61,13 @@ function UserPage() {
   };
 
   const handleFocusBus = (location) => {
-    setMapCenter({
-      lat: location.location.latitude,
-      lng: location.location.longitude
-    });
-  };
+  setSelectedBus(location);
+  setShowAllBuses(false);
+  setMapCenter({
+    lat: location.location.latitude,
+    lng: location.location.longitude
+  });
+};
 
   const displayLocations = showAllBuses ? locations : (selectedBus ? [selectedBus] : []);
 

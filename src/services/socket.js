@@ -5,11 +5,22 @@ let socket = null;
 
 export const initSocket = () => {
   if (!socket) {
+    console.log('Initializing socket connection to:', API_BASE_URL);
     socket = io(API_BASE_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error.message);
+    });
+
+    socket.on('error', (error) => {
+      console.error('Socket error:', error);
     });
   }
   return socket;
@@ -31,16 +42,19 @@ export const disconnectSocket = () => {
 
 export const subscribeToAllBuses = () => {
   const socket = getSocket();
+  console.log('Emitting: subscribe-all-buses');
   socket.emit('subscribe-all-buses');
 };
 
 export const subscribeToBus = (busNumber) => {
   const socket = getSocket();
+  console.log('Emitting: subscribe-bus', busNumber);
   socket.emit('subscribe-bus', busNumber);
 };
 
 export const subscribeToRoute = (routeId) => {
   const socket = getSocket();
+  console.log('Emitting: subscribe-route', routeId);
   socket.emit('subscribe-route', routeId);
 };
 

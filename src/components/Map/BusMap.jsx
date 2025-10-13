@@ -5,7 +5,7 @@ import BusMarker from './BusMarker';
 import LoadingSpinner from '../LoadingSpinner';
 import { DEFAULT_CENTER, MAP_CONTAINER_STYLE, MAP_OPTIONS, GOOGLE_MAPS_API_KEY } from '../../utils/constants';
 
-const BusMap = ({ locations, selectedRoute, center, followBus }) => {
+const BusMap = ({ locations = [], selectedRoute, center, followBus }) => {
   const [selectedBus, setSelectedBus] = useState(null);
   const [map, setMap] = useState(null);
   const previousLocationsRef = useRef({});
@@ -23,67 +23,58 @@ const BusMap = ({ locations, selectedRoute, center, followBus }) => {
     setMap(null);
   }, []);
 
-  // Smooth animation for bus locations
+  // Smooth animation for bus locations - with validation
   useEffect(() => {
+    if (!locations || !Array.isArray(locations)) return;
+    
     locations.forEach(location => {
-      previousLocationsRef.current[location.bus._id] = {
-        lat: location.location.latitude,
-        lng: location.location.longitude
-      };
+      if (location && location.bus && location.bus._id && location.location) {
+        previousLocationsRef.current[location.bus._id] = {
+          lat: location.location.latitude,
+          lng: location.location.longitude
+        };
+      }
     });
   }, [locations]);
 
-  // Auto-fit bounds when locations or route changes
-  useEffect(() => {
-    if (!map) return;
+  // Only auto-fit on initial load or route change 
+useEffect(() => {
+  if (!map) return;
 
-    // If no route and no locations, reset to default
-    if (!selectedRoute && locations.length === 0) {
-      map.setCenter(DEFAULT_CENTER);
-      map.setZoom(12);
-      return;
-    }
-
-    if (locations.length > 0 || (selectedRoute && selectedRoute.waypoints)) {
-      const bounds = new window.google.maps.LatLngBounds();
-      let hasPoints = false;
-      
-      // Add bus locations
-      locations.forEach(location => {
-        bounds.extend({
-          lat: location.location.latitude,
-          lng: location.location.longitude
-        });
-        hasPoints = true;
+  // Only fit bounds when route changes or on initial load
+  // NOT when locations update
+  if (selectedRoute && selectedRoute.waypoints && selectedRoute.waypoints.length > 0) {
+    const bounds = new window.google.maps.LatLngBounds();
+    
+    selectedRoute.waypoints.forEach(wp => {
+      bounds.extend({
+        lat: wp.latitude,
+        lng: wp.longitude
       });
+    });
 
-      // Add route waypoints
-      if (selectedRoute && selectedRoute.waypoints && selectedRoute.waypoints.length > 0) {
-        selectedRoute.waypoints.forEach(wp => {
-          bounds.extend({
-            lat: wp.latitude,
-            lng: wp.longitude
-          });
-          hasPoints = true;
-        });
-      }
-
-      // Only fit bounds if we have data
-      if (hasPoints && !bounds.isEmpty()) {
-        map.fitBounds(bounds, {
-          padding: { top: 50, right: 50, bottom: 50, left: 50 }
-        });
-      }
+    if (!bounds.isEmpty()) {
+      map.fitBounds(bounds, {
+        padding: { top: 50, right: 50, bottom: 50, left: 50 }
+      });
     }
-  }, [map, locations, selectedRoute]);
+  } else if (!selectedRoute && locations.length === 0) {
+    // Reset to default only when no route and no buses
+    map.setCenter(DEFAULT_CENTER);
+    map.setZoom(12);
+  }
+}, [map, selectedRoute]); 
 
   // Follow selected bus
   useEffect(() => {
     if (map && followBus && center) {
       map.panTo(center);
+      const currentZoom = map.getZoom();
+    if (currentZoom < 14) {
       map.setZoom(15);
     }
-  }, [map, center, followBus]);
+  }
+}, [map, center, followBus]);
 
   // Clear selected bus when route changes
   useEffect(() => {
@@ -119,11 +110,22 @@ const BusMap = ({ locations, selectedRoute, center, followBus }) => {
 
   // Prepare route polyline path - ONLY if route is selected
   const routePath = selectedRoute && selectedRoute.waypoints 
-    ? selectedRoute.waypoints.map(wp => ({
-        lat: wp.latitude,
-        lng: wp.longitude
-      }))
+    ? selectedRoute.waypoints
+        .filter(wp => wp && typeof wp.latitude === 'number' && typeof wp.longitude === 'number')
+        .map(wp => ({
+          lat: wp.latitude,
+          lng: wp.longitude
+        }))
     : [];
+
+  // Filter valid locations
+  const validLocations = (locations || []).filter(location => 
+    location && 
+    location.bus && 
+    location.location && 
+    typeof location.location.latitude === 'number' && 
+    typeof location.location.longitude === 'number'
+  );
 
   return (
     <div style={{ 
@@ -156,6 +158,10 @@ const BusMap = ({ locations, selectedRoute, center, followBus }) => {
 
         {/* Draw route waypoint markers - ONLY if selectedRoute exists */}
         {selectedRoute && selectedRoute.waypoints && selectedRoute.waypoints.map((waypoint, index) => {
+          if (!waypoint || typeof waypoint.latitude !== 'number' || typeof waypoint.longitude !== 'number') {
+            return null;
+          }
+
           const isStart = index === 0;
           const isEnd = index === selectedRoute.waypoints.length - 1;
           
@@ -182,7 +188,7 @@ const BusMap = ({ locations, selectedRoute, center, followBus }) => {
                 strokeColor: 'white',
                 strokeWeight: 2
               }}
-              title={waypoint.name}
+              title={waypoint.name || ''}
               label={isStart || isEnd ? {
                 text: label,
                 color: 'white',
@@ -193,8 +199,8 @@ const BusMap = ({ locations, selectedRoute, center, followBus }) => {
           );
         })}
 
-        {/* Draw bus markers */}
-        {locations.map(location => (
+        {/* Draw bus markers - only valid locations */}
+        {validLocations.map(location => (
           <BusMarker
             key={location.bus._id}
             location={location}
@@ -203,7 +209,7 @@ const BusMap = ({ locations, selectedRoute, center, followBus }) => {
         ))}
 
         {/* Info window for selected bus */}
-        {selectedBus && (
+        {selectedBus && selectedBus.location && (
           <InfoWindow
             position={{
               lat: selectedBus.location.latitude,
@@ -213,13 +219,13 @@ const BusMap = ({ locations, selectedRoute, center, followBus }) => {
           >
             <div style={{ padding: '10px', minWidth: '200px' }}>
               <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 'bold' }}>
-                Bus {selectedBus.bus.busNumber}
+                Bus {selectedBus.bus?.busNumber || 'N/A'}
               </h3>
               <p style={{ margin: '4px 0', fontSize: '13px' }}>
-                <strong>Type:</strong> {selectedBus.bus.serviceType}
+                <strong>Type:</strong> {selectedBus.bus?.serviceType || 'N/A'}
               </p>
               <p style={{ margin: '4px 0', fontSize: '13px' }}>
-                <strong>Operator:</strong> {selectedBus.bus.operator}
+                <strong>Operator:</strong> {selectedBus.bus?.operator || 'N/A'}
               </p>
               {selectedBus.trip && selectedBus.trip.route && (
                 <p style={{ margin: '4px 0', fontSize: '13px' }}>
@@ -227,13 +233,15 @@ const BusMap = ({ locations, selectedRoute, center, followBus }) => {
                 </p>
               )}
               <p style={{ margin: '4px 0', fontSize: '13px' }}>
-                <strong>Speed:</strong> {selectedBus.location.speed} km/h
+                <strong>Speed:</strong> {selectedBus.location.speed ?? 0} km/h
               </p>
               <p style={{ margin: '4px 0', fontSize: '13px' }}>
-                <strong>Heading:</strong> {selectedBus.location.heading}°
+                <strong>Heading:</strong> {selectedBus.location.heading ?? 0}°
               </p>
               <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: '#666' }}>
-                Last updated: {new Date(selectedBus.location.timestamp).toLocaleTimeString()}
+                Last updated: {selectedBus.location.timestamp 
+                  ? new Date(selectedBus.location.timestamp).toLocaleTimeString() 
+                  : 'N/A'}
               </p>
             </div>
           </InfoWindow>
@@ -241,7 +249,7 @@ const BusMap = ({ locations, selectedRoute, center, followBus }) => {
       </GoogleMap>
 
       {/* Status indicator */}
-      {locations.length > 0 && (
+      {validLocations.length > 0 && (
         <div style={{
           position: 'absolute',
           top: '16px',
@@ -264,12 +272,12 @@ const BusMap = ({ locations, selectedRoute, center, followBus }) => {
             borderRadius: '50%',
             animation: 'pulse 2s infinite'
           }} />
-          {locations.length} Active Bus{locations.length !== 1 ? 'es' : ''}
+          {validLocations.length} Active Bus{validLocations.length !== 1 ? 'es' : ''}
         </div>
       )}
 
       {/* No route selected message */}
-      {!selectedRoute && locations.length === 0 && (
+      {!selectedRoute && validLocations.length === 0 && (
         <div style={{
           position: 'absolute',
           top: '50%',
